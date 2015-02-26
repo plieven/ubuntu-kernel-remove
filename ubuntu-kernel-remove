@@ -1,4 +1,139 @@
 #!/usr/bin/php
 <?php
 
+/*
+ * ubuntu-kernel-remove
+ *
+ * Tool to remove outdated Ubuntu kernels from the system
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ *
+ * Copyright (c) 2015 Peter Lieven, KAMP Netzwerkdienste GmbH
+ *
+ * KAMP's contributions to this file may be relicensed under LGPLv2 or later.
+ */
+
+function mylog($msg='') {
+	fprintf(STDOUT, $msg."\n");
+}
+
+function fatal($err='') {
+	fprintf(STDERR, 'ERR: '.$err."\n");
+	exit(1);
+}
+
+function extract_train($k) {
+	if (preg_match('/^(\d+\.\d+)/', $k, $a)) return $a[1];
+	fatal('could not extract version train from: '.$k);
+}
+
+function extract_minor($k) {
+	if (preg_match('/^\d+\.\d+\.(\d+)\-(\d+)\-/', $k, $a)) return $a[1].'.'.$a[2];
+	fatal('could not extract minor version from: '.$k);
+}
+
+function minor_version_compare($a, $b) {
+	return version_compare(extract_minor($a), extract_minor($b));
+}
+
+function run_cmd($cmd, $fatal=false) {
+	mylog('executing cmd: '.$cmd);
+	passthru($cmd, $ret);
+	if ($ret) {
+		if ($fatal) {
+			fatal('command failed with exitcode: '.$ret);
+		} else {
+			mylog('command failed with exitcode: '.$ret);
+		}
+	} else {
+		mylog('command was successfull');
+	}
+	return $ret;
+}
+
+mylog('ubuntu-kernel-remove v0.1 - (c) Feb/15 by Peter Lieven <pl@kamp.de>');
+mylog('-------------------------------------------------------------------');
+
+if (posix_getuid()) fatal('you have to be root to run this script!');
+
+$running = trim(`uname -r`);
+if (!$running) {
+	fatal('could not detect running kernel');
+}
+
+$installed = array();
+$newest = array();
+foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
+	if (!is_dir($dir)) continue;
+	$dh = opendir($dir) or fatal('could not open: '.$dir);
+	while (($file = readdir($dh)) !== false) {
+		if (preg_match('/(\d+\.\d+.\d+\-\d+\-(generic|server))/', $file, $a)) {
+			@$installed[$a[1]]++;
+		}
+	}
+	closedir($dh);
+}
+
+foreach ($installed as $k => $v) {
+	$v = $installed[$k] = extract_train($k);
+	mylog('found kernel: '.$k.' (kernel version '.$v.')');
+	if (!array_key_exists($v, $newest) ||
+		minor_version_compare($k, $newest[$v]) > 0) $newest[$v] = $k;
+}
+
+if (!array_key_exists($running, $installed)) {
+	fatal('could not find running kernel under installed kernels');
+}
+
+foreach($installed as $k => $v) {
+	if ($k == $running) {
+		mylog('keeping: '.$running.' (running kernel)');
+		unset($installed[$k]);
+		continue;
+	}
+	if ($newest[extract_train($k)] == $k) {
+		mylog('keeping: '.$k.' (newest kernel in train '.extract_train($k).')');
+		unset($installed[$k]);
+		continue;
+	}
+	mylog('will remove: '.$k);
+}
+
+if ($argc < 2 || $argv[1] != '-a') {
+	mylog();
+	fatal('dry run - start with \'-a\' for auto removal!');
+}
+
+if (!count($installed)) {
+	mylog('nothing to do.');
+	exit(0);
+}
+
+foreach ($installed as $k => $v) {
+	mylog('removing: '.$k.'...');
+	run_cmd('apt-get remove -y linux-image-'.$k);
+	foreach (array('abi','config','initrd.img','System.map','vmlinuz') as $p) {
+		if (file_exists('/boot/'.$p.'-'.$k)) run_cmd('rm -f /boot/'.$p.'-'.$k);
+	}
+	if (is_dir('/lib/modules/'.$k)) run_cmd('rm -rf /lib/modules/'.$k);
+	if (is_dir('/usr/src/linux-headers-'.$k))	run_cmd('apt-get remove -y linux-headers-'.$k);
+	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('rm -rf /usr/src/linux-headers-'.$k);
+}
+
+run_cmd('update-grub', true);
+
+exit(0);
+
 ?>
