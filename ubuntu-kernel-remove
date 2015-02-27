@@ -141,7 +141,9 @@ if (!array_key_exists($running, $installed)) {
 	fatal('could not find running kernel under installed kernels');
 }
 
+$c=0;
 foreach($installed as $k => $v) {
+	$c++;
 	if ($k == $running) {
 		mylog('keeping: '.$running.' (running kernel)');
 		unset($installed[$k]);
@@ -149,6 +151,11 @@ foreach($installed as $k => $v) {
 	}
 	if ($newest[extract_train($k)] == $k) {
 		mylog('keeping: '.$k.' (newest kernel in train '.extract_train($k).')');
+		unset($installed[$k]);
+		continue;
+	}
+	if ($c == 2) {
+		mylog('keeping: '.$k.' (second newest kernel)');
 		unset($installed[$k]);
 		continue;
 	}
