@@ -26,11 +26,17 @@
  */
 
 function mylog($msg='') {
+	global $opt_syslog;
 	fprintf(STDOUT, $msg."\n");
+	if ($opt_syslog) syslog(LOG_INFO, $msg);
 }
 
 function fatal($err='') {
 	fprintf(STDERR, 'ERR: '.$err."\n");
+	if ($opt_syslog) {
+		syslog(LOG_ERR, $msg);
+		closelog();
+	}
 	exit(1);
 }
 
@@ -66,8 +72,11 @@ function run_cmd($cmd, $fatal=false) {
 mylog('ubuntu-kernel-remove v0.1 - (c) Feb/15 by Peter Lieven <pl@kamp.de>');
 mylog('-------------------------------------------------------------------');
 
-$options = getopt('a');
+$options = getopt('as');
 $opt_auto = array_key_exists('a',$options);
+if (($opt_syslog = array_key_exists('s',$options))) {
+	openlog(basename($argv[0]), LOG_PID, LOG_LOCAL7);
+}
 
 if (posix_getuid()) fatal('you have to be root to run this script!');
 
@@ -138,6 +147,7 @@ if (!$opt_auto) {
 
 if (!count($installed)) {
 	mylog('nothing to do.');
+	if ($opt_syslog) closelog();
 	exit(0);
 }
 
@@ -159,6 +169,9 @@ foreach ($installed as $k => $v) {
 
 run_cmd('update-grub', true);
 
+mylog('completed.');
+
+if ($opt_syslog) closelog();
 exit(0);
 
 ?>
