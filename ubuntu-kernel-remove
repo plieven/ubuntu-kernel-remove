@@ -66,6 +66,9 @@ function run_cmd($cmd, $fatal=false) {
 mylog('ubuntu-kernel-remove v0.1 - (c) Feb/15 by Peter Lieven <pl@kamp.de>');
 mylog('-------------------------------------------------------------------');
 
+$options = getopt('a');
+$opt_auto = array_key_exists('a',$options);
+
 if (posix_getuid()) fatal('you have to be root to run this script!');
 
 $running = trim(`uname -r`);
@@ -128,7 +131,7 @@ foreach($installed as $k => $v) {
 	mylog('will remove: '.$k);
 }
 
-if ($argc < 2 || $argv[1] != '-a') {
+if (!$opt_auto) {
 	mylog();
 	fatal('dry run - start with \'-a\' for auto removal!');
 }
