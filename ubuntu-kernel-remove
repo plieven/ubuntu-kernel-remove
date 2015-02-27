@@ -83,11 +83,12 @@ function run_cmd($cmd, $fatal=false) {
 mylog('ubuntu-kernel-remove v0.1 - (c) Feb/15 by Peter Lieven <pl@kamp.de>');
 mylog('-------------------------------------------------------------------');
 
-$options = getopt('as');
+$options = getopt('as1');
 $opt_auto = array_key_exists('a',$options);
 if (($opt_syslog = array_key_exists('s',$options))) {
 	openlog(basename($argv[0]), LOG_PID, LOG_LOCAL7);
 }
+$opt_only1 = array_key_exists('1',$options);
 
 if (posix_getuid()) fatal('you have to be root to run this script!');
 
@@ -149,12 +150,12 @@ foreach($installed as $k => $v) {
 		unset($installed[$k]);
 		continue;
 	}
-	if ($newest[extract_train($k)] == $k) {
+	if ($newest[extract_train($k)] == $k && !$opt_only1) {
 		mylog('keeping: '.$k.' (newest kernel in train '.extract_train($k).')');
 		unset($installed[$k]);
 		continue;
 	}
-	if ($c == 2 && ubuntu_version_compare($k, $running) < 0) {
+	if ($c == 2 && ubuntu_version_compare($k, $running) < 0 && !$opt_only1) {
 		mylog('keeping: '.$k.' (second newest kernel)');
 		unset($installed[$k]);
 		continue;
