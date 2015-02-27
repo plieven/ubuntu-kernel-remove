@@ -32,6 +32,7 @@ function mylog($msg='') {
 }
 
 function fatal($err='') {
+	global $opt_syslog;
 	fprintf(STDERR, 'ERR: '.$err."\n");
 	if ($opt_syslog) {
 		syslog(LOG_ERR, $msg);
