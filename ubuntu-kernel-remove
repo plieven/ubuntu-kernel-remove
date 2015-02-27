@@ -51,8 +51,18 @@ function extract_minor($k) {
 	fatal('could not extract minor version from: '.$k);
 }
 
+function train_version_compare($a, $b) {
+	return version_compare(extract_train($a), extract_train($b));
+}
+
 function minor_version_compare($a, $b) {
 	return version_compare(extract_minor($a), extract_minor($b));
+}
+
+function ubuntu_version_compare($a, $b) {
+	$train_cmp = train_version_compare($a, $b);
+	if (!$train_cmp) return minor_version_compare($a, $b);
+	return $train_cmp;
 }
 
 function run_cmd($cmd, $fatal=false) {
@@ -111,6 +121,10 @@ foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
 	}
 	closedir($dh);
 }
+
+foreach ($installed as $k => $v) $installed[$k] = $k;
+uasort($installed, 'ubuntu_version_compare');
+$installed=array_reverse($installed);
 
 foreach ($installed as $k => $v) {
 	$v = $installed[$k] = extract_train($k);
