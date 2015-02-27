@@ -111,7 +111,7 @@ foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir
 	if (!is_dir($dir)) continue;
 	$dh = opendir($dir) or fatal('could not open: '.$dir);
 	while (($file = readdir($dh)) !== false) {
-		if (preg_match('/(\-?)(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $file, $a)) {
+		if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $file, $a)) {
 			if (!$a[1] && !$a[3]) continue;
 			if (is_dir($dir.'/'.$file)) {
 				@$dirs[$a[2]][] = $dir.'/'.$file;
