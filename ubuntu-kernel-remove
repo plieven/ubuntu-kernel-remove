@@ -47,7 +47,7 @@ function extract_train($k) {
 }
 
 function extract_minor($k) {
-	if (preg_match('/^\d+\.\d+\.(\d+)\-(\d+)\-/', $k, $a)) return $a[1].'.'.$a[2];
+	if (preg_match('/^\d+\.\d+\.(\d+)\-(\d+)(\-generic|\-server)?$/', $k, $a)) return $a[1].'.'.$a[2];
 	fatal('could not extract minor version from: '.$k);
 }
 
@@ -111,13 +111,14 @@ foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir
 	if (!is_dir($dir)) continue;
 	$dh = opendir($dir) or fatal('could not open: '.$dir);
 	while (($file = readdir($dh)) !== false) {
-		if (preg_match('/(\d+\.\d+.\d+\-\d+\-(generic|server))/', $file, $a)) {
+		if (preg_match('/(\-?)(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $file, $a)) {
+			if (!$a[1] && !$a[3]) continue;
 			if (is_dir($dir.'/'.$file)) {
-				@$dirs[$a[1]][] = $dir.'/'.$file;
+				@$dirs[$a[2]][] = $dir.'/'.$file;
 			} else {
-				@$files[$a[1]][] = $dir.'/'.$file;
+				@$files[$a[2]][] = $dir.'/'.$file;
 			}
-			@$installed[$a[1]]++;
+			@$installed[$a[2]]++;
 		}
 	}
 	closedir($dh);
@@ -129,6 +130,11 @@ $installed=array_reverse($installed);
 
 foreach ($installed as $k => $v) {
 	$v = $installed[$k] = extract_train($k);
+	if (array_key_exists($k.'-generic', $installed) ||
+		array_key_exists($k.'-server', $installed)) {
+		unset($installed[$k]);
+		continue;
+	}
 	mylog('found kernel: '.$k.' (kernel version '.$v.')');
 	if (!file_exists('/boot/vmlinuz-'.$k)) {
 		mylog('WARN: /boot/vmlinuz-'.$k.' does not exist!');
@@ -178,6 +184,9 @@ foreach ($installed as $k => $v) {
 	mylog('removing: '.$k.'...');
 	run_cmd('apt-get purge -y '.escapeshellarg('linux-image-'.$k));
 	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-headers-'.$k));
+	if (preg_match('/^(\d+\.\d+\.\d+\-\d+)(\-generic|\-server)?$/', $k, $a)) {
+		if (is_dir('/usr/src/linux-headers-'.$a[1])) run_cmd('apt-get purge -y '.escapeshellarg('linux-headers-'.$a[1]));
+	}
 	if (is_dir('/usr/lib/linux-tools/'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-tools-'.$k));
 	if (array_key_exists($k, $files)) {
 		foreach ($files[$k] as $f) {
