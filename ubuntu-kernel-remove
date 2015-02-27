@@ -154,7 +154,7 @@ foreach($installed as $k => $v) {
 		unset($installed[$k]);
 		continue;
 	}
-	if ($c == 2) {
+	if ($c == 2 && ubuntu_version_compare($k, $running) < 0) {
 		mylog('keeping: '.$k.' (second newest kernel)');
 		unset($installed[$k]);
 		continue;
