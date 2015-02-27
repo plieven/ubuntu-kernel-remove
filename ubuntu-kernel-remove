@@ -82,13 +82,17 @@ foreach($checkexisting as $f) {
 	}
 }
 
-$installed = array();
-$newest = array();
+$installed = $newest = $dirs = $files = array();
 foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
 	if (!is_dir($dir)) continue;
 	$dh = opendir($dir) or fatal('could not open: '.$dir);
 	while (($file = readdir($dh)) !== false) {
 		if (preg_match('/(\d+\.\d+.\d+\-\d+\-(generic|server))/', $file, $a)) {
+			if (is_dir($dir.'/'.$file)) {
+				@$dirs[$a[1]][] = $dir.'/'.$file;
+			} else {
+				@$files[$a[1]][] = $dir.'/'.$file;
+			}
 			@$installed[$a[1]]++;
 		}
 	}
@@ -132,13 +136,18 @@ if (!count($installed)) {
 
 foreach ($installed as $k => $v) {
 	mylog('removing: '.$k.'...');
-	run_cmd('apt-get remove -y linux-image-'.$k);
-	foreach (array('abi','config','initrd.img','System.map','vmlinuz') as $p) {
-		if (file_exists('/boot/'.$p.'-'.$k)) run_cmd('rm -f /boot/'.$p.'-'.$k);
+	run_cmd('apt-get remove -y '.escapeshellarg('linux-image-'.$k));
+	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('apt-get remove -y '.escapeshellarg('linux-headers-'.$k));
+	if (array_key_exists($k, $files)) {
+		foreach ($files[$k] as $f) {
+			if (file_exists($f)) run_cmd('rm -f '.escapeshellarg($f));
+		}
 	}
-	if (is_dir('/lib/modules/'.$k)) run_cmd('rm -rf /lib/modules/'.$k);
-	if (is_dir('/usr/src/linux-headers-'.$k))	run_cmd('apt-get remove -y linux-headers-'.$k);
-	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('rm -rf /usr/src/linux-headers-'.$k);
+	if (array_key_exists($k, $dirs)) {
+		foreach ($dirs[$k] as $d) {
+			if (is_dir($d)) run_cmd('rm -rf '.escapeshellarg($d));
+		}
+	}
 }
 
 run_cmd('update-grub', true);
