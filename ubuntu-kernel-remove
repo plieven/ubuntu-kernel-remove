@@ -141,15 +141,15 @@ foreach($installed as $k => $v) {
 	mylog('will remove: '.$k);
 }
 
-if (!$opt_auto) {
-	mylog();
-	fatal('dry run - start with \'-a\' for auto removal!');
-}
-
 if (!count($installed)) {
 	mylog('nothing to do.');
 	if ($opt_syslog) closelog();
 	exit(0);
+}
+
+if (!$opt_auto) {
+	mylog();
+	fatal('dry run - start with \'-a\' for auto removal!');
 }
 
 foreach ($installed as $k => $v) {
