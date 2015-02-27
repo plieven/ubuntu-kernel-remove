@@ -106,7 +106,7 @@ foreach($checkexisting as $f) {
 }
 
 $installed = $newest = $dirs = $files = array();
-foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
+foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir) {
 	if (!is_dir($dir)) continue;
 	$dh = opendir($dir) or fatal('could not open: '.$dir);
 	while (($file = readdir($dh)) !== false) {
@@ -177,6 +177,7 @@ foreach ($installed as $k => $v) {
 	mylog('removing: '.$k.'...');
 	run_cmd('apt-get purge -y '.escapeshellarg('linux-image-'.$k));
 	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-headers-'.$k));
+	if (is_dir('/usr/lib/linux-tools/'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-tools-'.$k));
 	if (array_key_exists($k, $files)) {
 		foreach ($files[$k] as $f) {
 			if (file_exists($f)) run_cmd('rm -f '.escapeshellarg($f));
