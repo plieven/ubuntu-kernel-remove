@@ -95,6 +95,10 @@ foreach($checkexisting as $f) {
 	}
 }
 
+if (!file_exists('/var/tmp/ubuntu-kernel-remove.last')) {
+	file_put_contents('/var/tmp/ubuntu-kernel-remove.last', $running);
+}
+
 $installed = $newest = $dirs = $files = array();
 foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
 	if (!is_dir($dir)) continue;
@@ -127,9 +131,16 @@ if (!array_key_exists($running, $installed)) {
 	fatal('could not find running kernel under installed kernels');
 }
 
+$last = @file_get_contents('/var/tmp/ubuntu-kernel-remove.last');
+
 foreach($installed as $k => $v) {
 	if ($k == $running) {
 		mylog('keeping: '.$running.' (running kernel)');
+		unset($installed[$k]);
+		continue;
+	}
+	if ($last && $k == $last) {
+		mylog('keeping: '.$running.' (last running kernel)');
 		unset($installed[$k]);
 		continue;
 	}
@@ -151,6 +162,8 @@ if (!$opt_auto) {
 	mylog();
 	fatal('dry run - start with \'-a\' for auto removal!');
 }
+
+file_put_contents('/var/tmp/ubuntu-kernel-remove.last', $running);
 
 foreach ($installed as $k => $v) {
 	mylog('removing: '.$k.'...');
