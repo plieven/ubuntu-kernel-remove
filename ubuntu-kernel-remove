@@ -102,6 +102,10 @@ foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
 foreach ($installed as $k => $v) {
 	$v = $installed[$k] = extract_train($k);
 	mylog('found kernel: '.$k.' (kernel version '.$v.')');
+	if (!file_exists('/boot/vmlinuz-'.$k)) {
+		mylog('WARN: /boot/vmlinuz-'.$k.' does not exist!');
+		continue;
+	} 
 	if (!array_key_exists($v, $newest) ||
 		minor_version_compare($k, $newest[$v]) > 0) $newest[$v] = $k;
 }
