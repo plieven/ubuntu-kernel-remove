@@ -73,6 +73,15 @@ if (!$running) {
 	fatal('could not detect running kernel');
 }
 
+$checkexisting = array('/boot/vmlinuz-'.$running, '/boot/initrd.img-'.$running,
+                       '/etc/lsb-release', '/boot/grub/grub.cfg');
+
+foreach($checkexisting as $f) {
+	if (!file_exists($f)) {
+		fatal('could not find: '.$f);
+	}
+}
+
 $installed = array();
 $newest = array();
 foreach (array('/boot','/lib/modules','/usr/src') as $dir) {
