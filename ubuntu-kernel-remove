@@ -175,8 +175,8 @@ if (!$opt_auto) {
 
 foreach ($installed as $k => $v) {
 	mylog('removing: '.$k.'...');
-	run_cmd('apt-get remove -y '.escapeshellarg('linux-image-'.$k));
-	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('apt-get remove -y '.escapeshellarg('linux-headers-'.$k));
+	run_cmd('apt-get purge -y '.escapeshellarg('linux-image-'.$k));
+	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-headers-'.$k));
 	if (array_key_exists($k, $files)) {
 		foreach ($files[$k] as $f) {
 			if (file_exists($f)) run_cmd('rm -f '.escapeshellarg($f));
