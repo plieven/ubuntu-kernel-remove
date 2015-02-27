@@ -14,17 +14,33 @@ mkdir -p /usr/local/sbin
 cp -v ./ubuntu-kernel-remove /usr/local/sbin
 chmod 755 /usr/local/sbin/ubuntu-kernel-remove
 
-$(grep '/usr/local/sbin/ubuntu-kernel-remove' /etc/rc.local)
-[ $? -eq 0 ] && echo && echo "Done." && exit 0
-echo
-echo Adding /usr/local/sbin/ubuntu-kernel-remove to /etc/rc.local
-echo
-
-sed -i '/^exit 0$/ s/exit 0/screen -d -m \/usr\/local\/sbin\/ubuntu-kernel-remove -a -s\nexit 0/g' /etc/rc.local
-
+X=$(grep '/usr/local/sbin/ubuntu-kernel-remove' /etc/rc.local)
 if [ $? -ne 0 ]; then
- echo Installation failed!
- exit 1
+ echo
+ echo Adding /usr/local/sbin/ubuntu-kernel-remove to /etc/rc.local..
+ echo
+
+ sed -i '/^exit 0$/ s/exit 0/screen -d -m \/usr\/local\/sbin\/ubuntu-kernel-remove -a -s\nexit 0/g' /etc/rc.local
+
+ if [ $? -ne 0 ]; then
+  echo Installation failed!
+  exit 1
+ fi
+fi
+
+if [ -e /etc/cron.d/cron-apt ]; then
+ X=$(grep '/usr/local/sbin/ubuntu-kernel-remove' /etc/cron.d/cron-apt)
+ if [ $? -ne 0 ]; then
+  echo
+  echo Adding /usr/local/sbin/ubuntu-kernel-remove to /etc/cron.d/cron-apt...
+  echo
+  sed -i '/test -x \/usr\/sbin\/cron-apt && \/usr\/sbin\/cron-apt$/ s/cron-apt$/cron-apt \&\& \/usr\/local\/sbin\/ubuntu-kernel-remove -a -s/g' /etc/cron.d/cron-apt
+
+  if [ $? -ne 0 ]; then
+   echo Installation failed!
+   exit 1
+  fi
+ fi
 fi
 
 echo Done.
