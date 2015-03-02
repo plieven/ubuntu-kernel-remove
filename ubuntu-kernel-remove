@@ -209,7 +209,9 @@ foreach ($installed as $k => $v) {
 	}
 }
 
-run_cmd('apt-get -y purge '.join(' ', $rem_packages));
+if (count($rem_packages)) {
+	run_cmd('apt-get -y purge '.join(' ', $rem_packages));
+}
 
 foreach ($installed as $k => $v) {
 	//clean up remaining orphaned files
