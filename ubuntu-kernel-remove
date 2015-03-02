@@ -205,7 +205,7 @@ foreach ($installed as $k => $v) {
 }
 
 if (count($rem_packages)) {
-	mylog('will remove packages: ', join(' ',$rem_packages));
+	mylog('will remove packages: '. join(' ',$rem_packages));
 }
 
 if (!$opt_auto) {
