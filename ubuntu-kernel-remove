@@ -118,7 +118,7 @@ foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir
 			} else {
 				@$files[$a[2]][] = $dir.'/'.$file;
 			}
-			@$installed[$a[2]]++;
+			$installed[$a[2]] = 1;
 		}
 	}
 	closedir($dh);
@@ -130,7 +130,7 @@ foreach (explode("\n", trim(`dpkg -l 'linux-*' | grep '^ii'`)) as $l) {
 	$packages[] = $x[1];
 	if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $x[1], $a)) {
 		if (!$a[1] && count($a) < 3) continue;
-		@$installed[$a[2]]++;
+		$installed[$a[2]] = 1;
 	}
 }
 
@@ -188,6 +188,12 @@ if (!count($installed)) {
 if (!$opt_auto) {
 	mylog();
 	fatal('dry run - start with \'-a\' for auto removal!');
+}
+
+foreach($installed as $k => $v) {
+	if (preg_match('/^(\d+\.\d+\.\d+\-\d+)(\-generic|\-server)?$/', $k, $a)) {
+		$installed[$a[1]] = 1;
+	}
 }
 
 $rem_packages = array();
