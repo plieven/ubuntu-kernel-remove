@@ -112,7 +112,7 @@ foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir
 	$dh = opendir($dir) or fatal('could not open: '.$dir);
 	while (($file = readdir($dh)) !== false) {
 		if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $file, $a)) {
-			if (!$a[1] && !$a[3]) continue;
+			if (!$a[1] && count($a) < 3) continue;
 			if (is_dir($dir.'/'.$file)) {
 				@$dirs[$a[2]][] = $dir.'/'.$file;
 			} else {
@@ -122,6 +122,16 @@ foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir
 		}
 	}
 	closedir($dh);
+}
+
+$packages = array();
+foreach (explode("\n", trim(`dpkg -l 'linux-*' | grep '^ii'`)) as $l) {
+	$x = split("[ \t]+", $l);
+	$packages[] = $x[1];
+	if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $x[1], $a)) {
+		if (!$a[1] && count($a) < 3) continue;
+		@$installed[$a[2]]++;
+	}
 }
 
 foreach ($installed as $k => $v) $installed[$k] = $k;
@@ -180,14 +190,19 @@ if (!$opt_auto) {
 	fatal('dry run - start with \'-a\' for auto removal!');
 }
 
+$rem_packages = array();
 foreach ($installed as $k => $v) {
-	mylog('removing: '.$k.'...');
-	run_cmd('apt-get purge -y '.escapeshellarg('linux-image-'.$k));
-	if (is_dir('/usr/src/linux-headers-'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-headers-'.$k));
-	if (preg_match('/^(\d+\.\d+\.\d+\-\d+)(\-generic|\-server)?$/', $k, $a)) {
-		if (is_dir('/usr/src/linux-headers-'.$a[1])) run_cmd('apt-get purge -y '.escapeshellarg('linux-headers-'.$a[1]));
+	foreach ($packages as $p) {
+		if (substr($p, -strlen($k)) == $k) {
+			$rem_packages[] = escapeshellarg($p);
+		}
 	}
-	if (is_dir('/usr/lib/linux-tools/'.$k)) run_cmd('apt-get purge -y '.escapeshellarg('linux-tools-'.$k));
+}
+
+run_cmd('apt-get -y purge '.join(' ', $rem_packages));
+
+foreach ($installed as $k => $v) {
+	//clean up remaining orphaned files
 	if (array_key_exists($k, $files)) {
 		foreach ($files[$k] as $f) {
 			if (file_exists($f)) run_cmd('rm -f '.escapeshellarg($f));
