@@ -189,11 +189,6 @@ if (!count($installed)) {
 	exit(0);
 }
 
-if (!$opt_auto) {
-	mylog();
-	fatal('dry run - start with \'-a\' for auto removal!');
-}
-
 foreach($installed as $k => $v) {
 	if (preg_match('/^(\d+\.\d+\.\d+\-\d+)(\-generic|\-server)?$/', $k, $a)) {
 		$installed[$a[1]] = 1;
@@ -207,6 +202,15 @@ foreach ($installed as $k => $v) {
 			$rem_packages[] = escapeshellarg($p);
 		}
 	}
+}
+
+if (count($rem_packages)) {
+	mylog('will remove packages: ', join(' ',$rem_packages));
+}
+
+if (!$opt_auto) {
+	mylog();
+	fatal('dry run - start with \'-a\' for auto removal!');
 }
 
 if (count($rem_packages)) {
