@@ -25,17 +25,23 @@
  * KAMP's contributions to this file may be relicensed under LGPLv2 or later.
  */
 
-function mylog($msg='') {
+function mylog($msg='', $dobuf = false) {
 	global $opt_syslog;
-	fprintf(STDOUT, $msg."\n");
-	if ($opt_syslog) syslog(LOG_INFO, $msg);
+	static $outbuf = '';
+	if ($dobuf) {
+		$outbuf .= $msg."\n";
+	} else {
+		fprintf(STDOUT, trim($outbuf.$msg)."\n");
+		$outbuf = '';
+	}
+	if ($opt_syslog) syslog(LOG_INFO, trim($msg));
 }
 
 function fatal($err='') {
 	global $opt_syslog;
 	fprintf(STDERR, 'ERR: '.$err."\n");
 	if ($opt_syslog) {
-		syslog(LOG_ERR, $msg);
+		syslog(LOG_ERR, $err);
 		closelog();
 	}
 	exit(1);
@@ -80,15 +86,15 @@ function run_cmd($cmd, $fatal=false) {
 	return $ret;
 }
 
-mylog('ubuntu-kernel-remove v0.1 - (c) Feb/15 by Peter Lieven <pl@kamp.de>');
-mylog('-------------------------------------------------------------------');
-
 $options = getopt('as1');
 $opt_auto = array_key_exists('a',$options);
 if (($opt_syslog = array_key_exists('s',$options))) {
 	openlog(basename($argv[0]), LOG_PID, LOG_LOCAL7);
 }
 $opt_only1 = array_key_exists('1',$options);
+
+mylog('ubuntu-kernel-remove v0.1a - (c) Feb-Jun/15 by Peter Lieven <pl@kamp.de>', $opt_syslog);
+mylog('------------------------------------------------------------------------', $opt_syslog);
 
 if (posix_getuid()) fatal('you have to be root to run this script!');
 
@@ -145,9 +151,9 @@ foreach ($installed as $k => $v) {
 		unset($installed[$k]);
 		continue;
 	}
-	mylog('found kernel: '.$k.' (kernel version '.$v.')');
+	mylog('found kernel: '.$k.' (kernel version '.$v.')', $opt_syslog);
 	if (!file_exists('/boot/vmlinuz-'.$k)) {
-		mylog('WARN: /boot/vmlinuz-'.$k.' does not exist!');
+		mylog('WARN: /boot/vmlinuz-'.$k.' does not exist!', $opt_syslog);
 		continue;
 	} 
 	if (!array_key_exists($v, $newest) ||
@@ -162,29 +168,29 @@ $c=0;
 foreach($installed as $k => $v) {
 	$c++;
 	if ($k == $running) {
-		mylog('keeping: '.$running.' (running kernel)');
+		mylog('keeping: '.$running.' (running kernel)', $opt_syslog);
 		unset($installed[$k]);
 		continue;
 	}
 	if (file_exists('/boot/vmlinuz-'.$k)) {
 		if (@$newest[extract_train($k)] == $k && !$opt_only1) {
-			mylog('keeping: '.$k.' (newest kernel in train '.extract_train($k).')');
+			mylog('keeping: '.$k.' (newest kernel in train '.extract_train($k).')', $opt_syslog);
 			unset($installed[$k]);
 			continue;
 		}
 		if ($c == 2 && ubuntu_version_compare($k, $running) < 0 && !$opt_only1) {
-			mylog('keeping: '.$k.' (second newest kernel)');
+			mylog('keeping: '.$k.' (second newest kernel)', $opt_syslog);
 			unset($installed[$k]);
 			continue;
 		}
-		mylog('will remove: '.$k);
+		mylog('will remove: '.$k, $opt_syslog);
 	} else {
-		mylog('will remove: '.$k.' (missing kernel in /boot)');
+		mylog('will remove: '.$k.' (missing kernel in /boot)', $opt_syslog);
 	}
 }
 
 if (!count($installed)) {
-	mylog('nothing to do.');
+	mylog('nothing to do.', $opt_syslog);
 	if ($opt_syslog) closelog();
 	exit(0);
 }
