@@ -73,7 +73,7 @@ function ubuntu_version_compare($a, $b) {
 
 function run_cmd($cmd, $fatal=false) {
 	mylog('executing cmd: '.$cmd);
-	passthru($cmd, $ret);
+	passthru('PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin '.$cmd, $ret);
 	if ($ret) {
 		if ($fatal) {
 			fatal('command failed with exitcode: '.$ret);
