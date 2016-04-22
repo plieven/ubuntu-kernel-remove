@@ -132,7 +132,7 @@ foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir
 
 $packages = array();
 foreach (explode("\n", trim(`dpkg -l 'linux-*' | grep '^ii'`)) as $l) {
-	$x = split("[ \t]+", $l);
+	$x = preg_split("/[ \t]+/", $l);
 	$packages[] = $x[1];
 	if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $x[1], $a)) {
 		if (!$a[1] && count($a) < 3) continue;

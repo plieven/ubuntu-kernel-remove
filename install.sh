@@ -5,8 +5,15 @@ if [ $(id -u) -ne 0 ]; then
  exit 1
 fi
 
-X=$(dpkg -S php5-cli) 
-[ $? -ne 0 ] && apt-get install -y --no-install-recommends php5-cli
+. /etc/lsb-release
+if [ "$DISTRIB_CODENAME" = "xenial" ]; then
+ X=$(dpkg -S php7.0-cli)
+ [ $? -ne 0 ] && apt-get install -y --no-install-recommends php7.0-cli
+else
+ X=$(dpkg -S php5-cli)
+ [ $? -ne 0 ] && apt-get install -y --no-install-recommends php5-cli
+fi
+
 X=$(dpkg -S screen)
 [ $? -ne 0 ] && apt-get install -y --no-install-recommends screen
 
