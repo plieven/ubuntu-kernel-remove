@@ -18,7 +18,7 @@ X=$(dpkg -S screen)
 [ $? -ne 0 ] && apt-get install -y --no-install-recommends screen
 
 mkdir -p /usr/local/sbin
-cp -v ./ubuntu-kernel-remove /usr/local/sbin
+cp -v "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/"ubuntu-kernel-remove /usr/local/sbin
 chmod 755 /usr/local/sbin/ubuntu-kernel-remove
 
 X=$(grep '/usr/local/sbin/ubuntu-kernel-remove' /etc/rc.local)
