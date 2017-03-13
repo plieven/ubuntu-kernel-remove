@@ -22,18 +22,17 @@ cp -v "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/"ubuntu-kernel-remove /usr/
 chmod 755 /usr/local/sbin/ubuntu-kernel-remove
 
 X=$(grep '/usr/local/sbin/ubuntu-kernel-remove' /etc/rc.local)
-if [ $? -ne 0 ]; then
+if [ $? -eq 0 ]; then
  echo
- echo Adding /usr/local/sbin/ubuntu-kernel-remove to /etc/rc.local..
+ echo Removing /usr/local/sbin/ubuntu-kernel-remove from /etc/rc.local..
  echo
-
- sed -i '/^exit 0$/ s/exit 0/screen -d -m \/usr\/local\/sbin\/ubuntu-kernel-remove -a -s\nexit 0/g' /etc/rc.local
-
- if [ $? -ne 0 ]; then
-  echo Installation failed!
-  exit 1
- fi
+ sed -i 's/^screen -d -m \/usr\/local\/sbin\/ubuntu-kernel-remove -a -s$//g' /etc/rc.local
 fi
+
+echo
+echo Addding @reboot cronjob
+echo
+echo "@reboot root /usr/local/sbin/ubuntu-kernel-remove -a -s" >/etc/cron.d/ubuntu-kernel-remove
 
 if [ -e /etc/cron.d/cron-apt ]; then
  X=$(grep '/usr/local/sbin/ubuntu-kernel-remove' /etc/cron.d/cron-apt)
