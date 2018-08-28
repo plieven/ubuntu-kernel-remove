@@ -1,7 +1,7 @@
 #!/usr/bin/php -d disable_functions=
 <?php
 
-/*
+/**
  * ubuntu-kernel-remove
  *
  * Tool to remove outdated Ubuntu kernels from the system
@@ -25,223 +25,295 @@
  * KAMP's contributions to this file may be relicensed under LGPLv2 or later.
  */
 
-function mylog($msg='', $dobuf = false) {
-	global $opt_syslog;
-	static $outbuf = '';
-	if ($dobuf) {
-		$outbuf .= $msg."\n";
-	} else {
-		fprintf(STDOUT, trim($outbuf.$msg)."\n");
-		$outbuf = '';
-	}
-	if ($opt_syslog) syslog(LOG_INFO, trim($msg));
+function mylog($msg = '', $dobuf = false)
+{
+    global $opt_syslog;
+    static $outbuf = '';
+
+    if ($dobuf) {
+        $outbuf .= $msg . "\n";
+    } else {
+        fprintf(STDOUT, trim($outbuf . $msg) . "\n");
+        $outbuf = '';
+    }
+
+    if ($opt_syslog) {
+        syslog(LOG_INFO, trim($msg));
+    }
 }
 
-function fatal($err='') {
-	global $opt_syslog;
-	fprintf(STDERR, 'ERR: '.$err."\n");
-	if ($opt_syslog) {
-		syslog(LOG_ERR, $err);
-		closelog();
-	}
-	exit(1);
+function fatal($err = '')
+{
+    global $opt_syslog;
+
+    fprintf(STDERR, 'ERR: ' . $err . "\n");
+
+    if ($opt_syslog) {
+        syslog(LOG_ERR, $err);
+        closelog();
+    }
+
+    exit(1);
 }
 
-function extract_train($k) {
-	if (preg_match('/^(\d+\.\d+)/', $k, $a)) return $a[1];
-	fatal('could not extract version train from: '.$k);
+function extract_train($k)
+{
+    if (preg_match('/^(\d+\.\d+)/', $k, $a)) {
+        return $a[1];
+    }
+
+    fatal('could not extract version train from: ' . $k);
 }
 
-function extract_minor($k) {
-	if (preg_match('/^\d+\.\d+\.(\d+)\-(\d+)(\-generic|\-server)?$/', $k, $a)) return $a[1].'.'.$a[2];
-	fatal('could not extract minor version from: '.$k);
+function extract_minor($k)
+{
+    if (preg_match('/^\d+\.\d+\.(\d+)\-(\d+)(\-generic|\-server)?$/', $k, $a)) {
+        return $a[1] . '.' . $a[2];
+    }
+
+    fatal('could not extract minor version from: ' . $k);
 }
 
-function train_version_compare($a, $b) {
-	return version_compare(extract_train($a), extract_train($b));
+function train_version_compare($a, $b)
+{
+    return version_compare(extract_train($a), extract_train($b));
 }
 
-function minor_version_compare($a, $b) {
-	return version_compare(extract_minor($a), extract_minor($b));
+function minor_version_compare($a, $b)
+{
+    return version_compare(extract_minor($a), extract_minor($b));
 }
 
-function ubuntu_version_compare($a, $b) {
-	$train_cmp = train_version_compare($a, $b);
-	if (!$train_cmp) return minor_version_compare($a, $b);
-	return $train_cmp;
+function ubuntu_version_compare($a, $b)
+{
+    $train_cmp = train_version_compare($a, $b);
+    if (!$train_cmp) {
+        return minor_version_compare($a, $b);
+    }
+
+    return $train_cmp;
 }
 
-function run_cmd($cmd, $fatal=false) {
-	mylog('executing cmd: '.$cmd);
-	passthru('PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin '.$cmd, $ret);
-	if ($ret) {
-		if ($fatal) {
-			fatal('command failed with exitcode: '.$ret);
-		} else {
-			mylog('command failed with exitcode: '.$ret);
-		}
-	} else {
-		mylog('command was successfull');
-	}
-	return $ret;
+function run_cmd($cmd, $fatal = false)
+{
+    mylog('executing cmd: ' . $cmd);
+    passthru('PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin ' . $cmd, $ret);
+    if ($ret) {
+        if ($fatal) {
+            fatal('command failed with exitcode: ' . $ret);
+        } else {
+            mylog('command failed with exitcode: ' . $ret);
+        }
+    } else {
+        mylog('command was successfull');
+    }
+
+    return $ret;
 }
 
 $options = getopt('as1');
-$opt_auto = array_key_exists('a',$options);
-if (($opt_syslog = array_key_exists('s',$options))) {
-	openlog(basename($argv[0]), LOG_PID, LOG_LOCAL7);
+$opt_auto = array_key_exists('a', $options);
+$opt_syslog = array_key_exists('s', $options);
+$opt_only1 = array_key_exists('1', $options);
+
+if ($opt_syslog) {
+    openlog(basename($argv[0]), LOG_PID, LOG_LOCAL7);
 }
-$opt_only1 = array_key_exists('1',$options);
 
 mylog('ubuntu-kernel-remove v0.1a - (c) Feb-Jun/15 by Peter Lieven <pl@kamp.de>', $opt_syslog);
 mylog('------------------------------------------------------------------------', $opt_syslog);
 
-if (posix_getuid()) fatal('you have to be root to run this script!');
+if (posix_getuid()) {
+    fatal('you have to be root to run this script!');
+}
 
 $running = trim(`uname -r`);
 if (!$running) {
-	fatal('could not detect running kernel');
+    fatal('could not detect running kernel');
 }
 
-$checkexisting = array('/boot/vmlinuz-'.$running, '/boot/initrd.img-'.$running,
-                       '/etc/lsb-release', '/boot/grub/grub.cfg');
+$checkexisting = [
+    '/boot/vmlinuz-' . $running,
+    '/boot/initrd.img-' . $running,
+    '/etc/lsb-release',
+    '/boot/grub/grub.cfg',
+];
 
-foreach($checkexisting as $f) {
-	if (!file_exists($f)) {
-		fatal('could not find: '.$f);
-	}
+foreach ($checkexisting as $f) {
+    if (!file_exists($f)) {
+        fatal('could not find: ' . $f);
+    }
 }
 
-$installed = $newest = $dirs = $files = array();
-foreach (array('/boot','/lib/modules','/usr/src','/usr/lib/linux-tools') as $dir) {
-	if (!is_dir($dir)) continue;
-	$dh = opendir($dir) or fatal('could not open: '.$dir);
-	while (($file = readdir($dh)) !== false) {
-		if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $file, $a)) {
-			if (!$a[1] && count($a) < 3) continue;
-			if (is_dir($dir.'/'.$file)) {
-				@$dirs[$a[2]][] = $dir.'/'.$file;
-			} else {
-				@$files[$a[2]][] = $dir.'/'.$file;
-			}
-			$installed[$a[2]] = 1;
-		}
-	}
-	closedir($dh);
+$installed = [];
+$newest = [];
+$dirs = [];
+$files = [];
+
+foreach (['/boot', '/lib/modules', '/usr/src', '/usr/lib/linux-tools'] as $dir) {
+    if (!is_dir($dir)) {
+        continue;
+    }
+
+    $dh = opendir($dir);
+    if (!$dh) {
+        fatal('could not open: ' . $dir);
+    }
+
+    while (($file = readdir($dh)) !== false) {
+        if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $file, $a)) {
+            if (!$a[1] && (count($a) < 3)) {
+                continue;
+            }
+
+            if (is_dir($dir . '/' . $file)) {
+                @$dirs[$a[2]][] = $dir . '/' . $file;
+            } else {
+                @$files[$a[2]][] = $dir . '/' . $file;
+            }
+
+            $installed[$a[2]] = 1;
+        }
+    }
+
+    closedir($dh);
 }
 
-$packages = array();
+$packages = [];
 foreach (explode("\n", trim(`dpkg -l 'linux-*' | grep '^ii'`)) as $l) {
-	$x = preg_split("/[ \t]+/", $l);
-	$packages[] = $x[1];
-	if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $x[1], $a)) {
-		if (!$a[1] && count($a) < 3) continue;
-		$installed[$a[2]] = 1;
-	}
-}
+    $x = preg_split("/[ \t]+/", $l);
+    $packages[] = $x[1];
 
-foreach ($installed as $k => $v) $installed[$k] = $k;
-uasort($installed, 'ubuntu_version_compare');
-$installed=array_reverse($installed);
+    if (preg_match('/(headers\-)?(\d+\.\d+.\d+\-\d+(\-generic|\-server)?)/', $x[1], $a)) {
+        if (!$a[1] && (count($a) < 3)) {
+            continue;
+        }
+
+        $installed[$a[2]] = 1;
+    }
+}
 
 foreach ($installed as $k => $v) {
-	$v = $installed[$k] = extract_train($k);
-	if (array_key_exists($k.'-generic', $installed) ||
-		array_key_exists($k.'-server', $installed)) {
-		unset($installed[$k]);
-		continue;
-	}
-	mylog('found kernel: '.$k.' (kernel version '.$v.')', $opt_syslog);
-	if (!file_exists('/boot/vmlinuz-'.$k)) {
-		mylog('WARN: /boot/vmlinuz-'.$k.' does not exist!', $opt_syslog);
-		continue;
-	} 
-	if (!array_key_exists($v, $newest) ||
-		minor_version_compare($k, $newest[$v]) > 0) $newest[$v] = $k;
+    $installed[$k] = $k;
+}
+
+uasort($installed, 'ubuntu_version_compare');
+$installed = array_reverse($installed);
+
+foreach ($installed as $k => $v) {
+    $v = $installed[$k] = extract_train($k);
+    if (array_key_exists($k . '-generic', $installed) || array_key_exists($k . '-server', $installed)) {
+        unset($installed[$k]);
+        continue;
+    }
+
+    mylog('found kernel: ' . $k . ' (kernel version ' . $v . ')', $opt_syslog);
+    if (!file_exists('/boot/vmlinuz-' . $k)) {
+        mylog('WARN: /boot/vmlinuz-' . $k . ' does not exist!', $opt_syslog);
+        continue;
+    }
+
+    if (!array_key_exists($v, $newest) || minor_version_compare($k, $newest[$v]) > 0) {
+        $newest[$v] = $k;
+    }
 }
 
 if (!array_key_exists($running, $installed)) {
-	fatal('could not find running kernel under installed kernels');
+    fatal('could not find running kernel under installed kernels');
 }
 
-$c=0;
-foreach($installed as $k => $v) {
-	$c++;
-	if ($k == $running) {
-		mylog('keeping: '.$running.' (running kernel)', $opt_syslog);
-		unset($installed[$k]);
-		continue;
-	}
-	if (file_exists('/boot/vmlinuz-'.$k)) {
-		if (@$newest[extract_train($k)] == $k && !$opt_only1) {
-			mylog('keeping: '.$k.' (newest kernel in train '.extract_train($k).')', $opt_syslog);
-			unset($installed[$k]);
-			continue;
-		}
-		if ($c == 2 && ubuntu_version_compare($k, $running) < 0 && !$opt_only1) {
-			mylog('keeping: '.$k.' (second newest kernel)', $opt_syslog);
-			unset($installed[$k]);
-			continue;
-		}
-		mylog('will remove: '.$k, $opt_syslog);
-	} else {
-		mylog('will remove: '.$k.' (missing kernel in /boot)', $opt_syslog);
-	}
+$c = 0;
+foreach ($installed as $k => $v) {
+    $c++;
+
+    if ($k == $running) {
+        mylog('keeping: ' . $running . ' (running kernel)', $opt_syslog);
+        unset($installed[$k]);
+        continue;
+    }
+
+    if (file_exists('/boot/vmlinuz-' . $k)) {
+        if ((@$newest[extract_train($k)] == $k) && !$opt_only1) {
+            mylog('keeping: ' . $k . ' (newest kernel in train ' . extract_train($k) . ')', $opt_syslog);
+            unset($installed[$k]);
+            continue;
+        }
+
+        if (($c == 2) && (ubuntu_version_compare($k, $running) < 0) && !$opt_only1) {
+            mylog('keeping: ' . $k . ' (second newest kernel)', $opt_syslog);
+            unset($installed[$k]);
+            continue;
+        }
+
+        mylog('will remove: ' . $k, $opt_syslog);
+    } else {
+        mylog('will remove: ' . $k . ' (missing kernel in /boot)', $opt_syslog);
+    }
 }
 
 if (!count($installed)) {
-	mylog('nothing to do.', $opt_syslog);
-	if ($opt_syslog) closelog();
-	exit(0);
+    mylog('nothing to do.', $opt_syslog);
+
+    if ($opt_syslog) {
+        closelog();
+    }
+
+    exit(0);
 }
 
-foreach($installed as $k => $v) {
-	if (preg_match('/^(\d+\.\d+\.\d+\-\d+)(\-generic|\-server)?$/', $k, $a)) {
-		$installed[$a[1]] = 1;
-	}
-}
-
-$rem_packages = array();
 foreach ($installed as $k => $v) {
-	foreach ($packages as $p) {
-		if (substr($p, -strlen($k)) == $k) {
-			$rem_packages[] = escapeshellarg($p);
-		}
-	}
+    if (preg_match('/^(\d+\.\d+\.\d+\-\d+)(\-generic|\-server)?$/', $k, $a)) {
+        $installed[$a[1]] = 1;
+    }
+}
+
+$rem_packages = [];
+foreach ($installed as $k => $v) {
+    foreach ($packages as $p) {
+        if (substr($p, -strlen($k)) == $k) {
+            $rem_packages[] = escapeshellarg($p);
+        }
+    }
 }
 
 if (count($rem_packages)) {
-	mylog('will remove packages: '. join(' ',$rem_packages));
+    mylog('will remove packages: ' . join(' ', $rem_packages));
 }
 
 if (!$opt_auto) {
-	mylog();
-	fatal('dry run - start with \'-a\' for auto removal!');
+    mylog();
+    fatal('dry run - start with \'-a\' for auto removal!');
 }
 
 if (count($rem_packages)) {
-	run_cmd('apt-get -y purge '.join(' ', $rem_packages));
+    run_cmd('apt-get -y purge ' . join(' ', $rem_packages));
 }
 
 foreach ($installed as $k => $v) {
-	//clean up remaining orphaned files
-	if (array_key_exists($k, $files)) {
-		foreach ($files[$k] as $f) {
-			if (file_exists($f)) run_cmd('rm -f '.escapeshellarg($f));
-		}
-	}
-	if (array_key_exists($k, $dirs)) {
-		foreach ($dirs[$k] as $d) {
-			if (is_dir($d)) run_cmd('rm -rf '.escapeshellarg($d));
-		}
-	}
+    // clean up remaining orphaned files
+    if (array_key_exists($k, $files)) {
+        foreach ($files[$k] as $f) {
+            if (file_exists($f)) {
+                run_cmd('rm -f ' . escapeshellarg($f));
+            }
+        }
+    }
+
+    if (array_key_exists($k, $dirs)) {
+        foreach ($dirs[$k] as $d) {
+            if (is_dir($d)) {
+                run_cmd('rm -rf ' . escapeshellarg($d));
+            }
+        }
+    }
 }
 
 run_cmd('update-grub', true);
 
 mylog('completed.');
 
-if ($opt_syslog) closelog();
-exit(0);
+if ($opt_syslog) {
+    closelog();
+}
 
-?>
+exit(0);
