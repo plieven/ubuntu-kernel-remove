@@ -2,7 +2,7 @@
 <?php
 
 /**
- * ubuntu-kernel-remove
+ * ubuntu-kernel-remove v1.0
  *
  * Tool to remove outdated Ubuntu kernels from the system
  *
@@ -20,10 +20,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
- * Copyright (c) 2015 Peter Lieven, KAMP Netzwerkdienste GmbH
+ * Copyright (c) 2015 - 2018 Peter Lieven, KAMP Netzwerkdienste GmbH
  *
  * KAMP's contributions to this file may be relicensed under LGPLv2 or later.
  */
+
+
+define('REBOOT_REQUIRED_FILE', '/var/run/reboot-required');
+
 
 function mylog($msg = '', $dobuf = false)
 {
@@ -111,6 +115,7 @@ function run_cmd($cmd, $fatal = false)
     return $ret;
 }
 
+
 $options = getopt('as1');
 $opt_auto = array_key_exists('a', $options);
 $opt_syslog = array_key_exists('s', $options);
@@ -120,8 +125,8 @@ if ($opt_syslog) {
     openlog(basename($argv[0]), LOG_PID, LOG_LOCAL7);
 }
 
-mylog('ubuntu-kernel-remove v0.1a - (c) Feb-Jun/15 by Peter Lieven <pl@kamp.de>', $opt_syslog);
-mylog('------------------------------------------------------------------------', $opt_syslog);
+mylog('ubuntu-kernel-remove v1.0 - (c) 2015-2018 by Peter Lieven <pl@kamp.de>', $opt_syslog);
+mylog('----------------------------------------------------------------------', $opt_syslog);
 
 if (posix_getuid()) {
     fatal('you have to be root to run this script!');
@@ -144,6 +149,8 @@ foreach ($checkexisting as $f) {
         fatal('could not find: ' . $f);
     }
 }
+
+$reboot_was_required = file_exists(REBOOT_REQUIRED_FILE);
 
 $installed = [];
 $newest = [];
@@ -277,7 +284,7 @@ foreach ($installed as $k => $v) {
 }
 
 if (count($rem_packages)) {
-    mylog('will remove packages: ' . join(' ', $rem_packages));
+    mylog('will remove packages: ' . implode(' ', $rem_packages));
 }
 
 if (!$opt_auto) {
@@ -286,7 +293,7 @@ if (!$opt_auto) {
 }
 
 if (count($rem_packages)) {
-    run_cmd('apt-get -y purge ' . join(' ', $rem_packages));
+    run_cmd('apt-get -y purge ' . implode(' ', $rem_packages));
 }
 
 foreach ($installed as $k => $v) {
@@ -309,6 +316,11 @@ foreach ($installed as $k => $v) {
 }
 
 run_cmd('update-grub', true);
+
+if (!$reboot_was_required && file_exists(REBOOT_REQUIRED_FILE)) {
+    mylog('removing ' . escapeshellarg(REBOOT_REQUIRED_FILE) . ' because it was created just for the removed kernels');
+    run_cmd('rm -rf ' . escapeshellarg(REBOOT_REQUIRED_FILE));
+}
 
 mylog('completed.');
 
