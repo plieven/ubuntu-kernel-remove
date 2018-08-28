@@ -277,7 +277,7 @@ foreach ($installed as $k => $v) {
 }
 
 if (count($rem_packages)) {
-    mylog('will remove packages: ' . join(' ', $rem_packages));
+    mylog('will remove packages: ' . implode(' ', $rem_packages));
 }
 
 if (!$opt_auto) {
@@ -286,7 +286,7 @@ if (!$opt_auto) {
 }
 
 if (count($rem_packages)) {
-    run_cmd('apt-get -y purge ' . join(' ', $rem_packages));
+    run_cmd('apt-get -y purge ' . implode(' ', $rem_packages));
 }
 
 foreach ($installed as $k => $v) {
