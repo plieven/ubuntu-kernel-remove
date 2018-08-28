@@ -25,6 +25,10 @@
  * KAMP's contributions to this file may be relicensed under LGPLv2 or later.
  */
 
+
+define('REBOOT_REQUIRED_FILE', '/var/run/reboot-required');
+
+
 function mylog($msg = '', $dobuf = false)
 {
     global $opt_syslog;
@@ -111,6 +115,7 @@ function run_cmd($cmd, $fatal = false)
     return $ret;
 }
 
+
 $options = getopt('as1');
 $opt_auto = array_key_exists('a', $options);
 $opt_syslog = array_key_exists('s', $options);
@@ -144,6 +149,8 @@ foreach ($checkexisting as $f) {
         fatal('could not find: ' . $f);
     }
 }
+
+$reboot_was_required = file_exists(REBOOT_REQUIRED_FILE);
 
 $installed = [];
 $newest = [];
@@ -309,6 +316,11 @@ foreach ($installed as $k => $v) {
 }
 
 run_cmd('update-grub', true);
+
+if (!$reboot_was_required && file_exists(REBOOT_REQUIRED_FILE)) {
+    mylog('removing ' . escapeshellarg(REBOOT_REQUIRED_FILE) . ' because it was created just for the removed kernels');
+    run_cmd('rm -rf ' . escapeshellarg(REBOOT_REQUIRED_FILE));
+}
 
 mylog('completed.');
 
