@@ -17,10 +17,6 @@ else
     fi
 fi
 
-if ! dpkg-query -s screen > /dev/null 2>&1; then
-    apt-get install -y --no-install-recommends screen
-fi
-
 mkdir -p /usr/local/sbin
 cp -v "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ubuntu-kernel-remove" /usr/local/sbin/
 chmod 755 /usr/local/sbin/ubuntu-kernel-remove
