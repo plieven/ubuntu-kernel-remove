@@ -157,7 +157,7 @@ $newest = [];
 $dirs = [];
 $files = [];
 
-foreach (['/boot', '/lib/modules', '/usr/src', '/usr/lib/linux-tools'] as $dir) {
+foreach (['/boot', '/lib/modules', '/usr/lib/linux-tools'] as $dir) {
     if (!is_dir($dir)) {
         continue;
     }
